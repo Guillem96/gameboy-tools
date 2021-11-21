@@ -1,0 +1,6 @@
+# Visual Sutio Code
+.vscode/
+
+# Generated & download binaries
+build/
+rom/
