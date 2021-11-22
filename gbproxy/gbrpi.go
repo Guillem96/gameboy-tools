@@ -50,14 +50,19 @@ func (p GameBoyRPiPin) Output() {
 // RPiGameBoyProxy implements the GameBoyProxy to provide a working data transfer between
 // a RaspberryPi and the GameBoy
 type RPiGameBoyProxy struct {
-	As []GameBoyRPiPin
-	Db []GameBoyRPiPin
-	Rd GameBoyRPiPin
-	Wr GameBoyRPiPin
+	As       []GameBoyRPiPin
+	Db       []GameBoyRPiPin
+	Rd       GameBoyRPiPin
+	Wr       GameBoyRPiPin
+	isMaster bool
 }
 
-// NewRPiGameBoyProxy creates a new RPiGameBoyProxy
-func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping) *RPiGameBoyProxy {
+// NewRPiGameBoyProxy creates a new RPiGameBoyProxy. if isMaster is set to
+// true then it means that the raspberry is the one in charge of managing the
+// cartridge, meaning that it has to send the read/write operations along side
+// selecting the address. Contrarily, if isMaster is set to false, the raspberry
+// acts as a slave just forwarding to the GameBoy the requested byte
+func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping, isMaster bool) *RPiGameBoyProxy {
 	as := []GameBoyRPiPin{GameBoyRPiPin(cm.A0), GameBoyRPiPin(cm.A1), GameBoyRPiPin(cm.A2),
 		GameBoyRPiPin(cm.A3), GameBoyRPiPin(cm.A4), GameBoyRPiPin(cm.A5), GameBoyRPiPin(cm.A6),
 		GameBoyRPiPin(cm.A7), GameBoyRPiPin(cm.A8), GameBoyRPiPin(cm.A9), GameBoyRPiPin(cm.A10),
@@ -72,20 +77,35 @@ func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping) *RPiGameBoyProxy {
 
 	// AX pins are the address selector.
 	for _, a := range as {
-		a.Output()
+		// If Raspberry manages the cartridge then the address selector must
+		// be in output mode
+		if isMaster {
+			a.Output()
+		} else {
+			a.Input()
+		}
 	}
 
 	rd := GameBoyRPiPin(cm.RD)
-	rd.Output()
+	if isMaster {
+		rd.Output()
+	} else {
+		rd.Input()
+	}
 
 	wr := GameBoyRPiPin(cm.WR)
-	wr.Output()
+	if isMaster {
+		wr.Output()
+	} else {
+		wr.Input()
+	}
 
 	return &RPiGameBoyProxy{
-		As: as,
-		Db: db,
-		Rd: rd,
-		Wr: wr,
+		As:       as,
+		Db:       db,
+		Rd:       rd,
+		Wr:       wr,
+		isMaster: isMaster,
 	}
 }
 
@@ -132,30 +152,38 @@ func (rpigb *RPiGameBoyProxy) Write(value uint8) {
 	// Back to read mode (safest)
 	rpigb.readMode()
 
-	// Reset the DX to low
-	for _, d := range rpigb.Db {
-		d.Low()
-		d.Input()
+	if rpigb.isMaster {
+		// Reset the DX to low
+		for _, d := range rpigb.Db {
+			d.Low()
+			d.Input()
+		}
 	}
 }
 
 // SelectAddress sets the GPIO pins status so the referenced address in the cartridge is the given one
 func (rpigb *RPiGameBoyProxy) SelectAddress(addr uint) {
-	writeToRPiPins(addr, rpigb.As)
+	if rpigb.isMaster {
+		writeToRPiPins(addr, rpigb.As)
+	}
 }
 
 func (rpigb *RPiGameBoyProxy) readMode() {
-	// To read we have to do the contrary (Rd to ground and Wr to high)
-	rpigb.Rd.Low()
-	rpigb.Wr.High()
-	time.Sleep(5 * time.Millisecond)
+	if rpigb.isMaster {
+		// To read we have to do the contrary (Rd to ground and Wr to high)
+		rpigb.Rd.Low()
+		rpigb.Wr.High()
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 func (rpigb *RPiGameBoyProxy) writeMode() {
-	// To write we have to do the contrary (Wr to ground and Rd to high)
-	rpigb.Rd.High()
-	rpigb.Wr.Low()
-	time.Sleep(5 * time.Millisecond)
+	if rpigb.isMaster {
+		// To write we have to do the contrary (Wr to ground and Rd to high)
+		rpigb.Rd.High()
+		rpigb.Wr.Low()
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 func writeToRPiPins(value uint, pins []GameBoyRPiPin) {
