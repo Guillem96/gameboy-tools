@@ -50,11 +50,10 @@ func (p GameBoyRPiPin) Output() {
 // RPiGameBoyProxy implements the GameBoyProxy to provide a working data transfer between
 // a RaspberryPi and the GameBoy
 type RPiGameBoyProxy struct {
-	As       []GameBoyRPiPin
-	Db       []GameBoyRPiPin
-	Rd       GameBoyRPiPin
-	Wr       GameBoyRPiPin
-	isMaster bool
+	As []GameBoyRPiPin
+	Db []GameBoyRPiPin
+	Rd GameBoyRPiPin
+	Wr GameBoyRPiPin
 }
 
 // NewRPiGameBoyProxy creates a new RPiGameBoyProxy. if isMaster is set to
@@ -101,11 +100,10 @@ func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping, isMaster bool) *RPiG
 	}
 
 	return &RPiGameBoyProxy{
-		As:       as,
-		Db:       db,
-		Rd:       rd,
-		Wr:       wr,
-		isMaster: isMaster,
+		As: as,
+		Db: db,
+		Rd: rd,
+		Wr: wr,
 	}
 }
 
@@ -128,7 +126,9 @@ func (rpigb *RPiGameBoyProxy) End() {
 func (rpigb *RPiGameBoyProxy) Read() uint8 {
 	var result uint8
 
-	rpigb.readMode()
+	for _, d := range rpigb.Db {
+		d.Input()
+	}
 
 	result = 0x00
 	for i := 0; i < 8; i++ {
@@ -146,44 +146,26 @@ func (rpigb *RPiGameBoyProxy) Write(value uint8) {
 		d.Output()
 	}
 
-	rpigb.writeMode()
 	writeToRPiPins(uint(value), rpigb.Db)
-
-	// Back to read mode (safest)
-	rpigb.readMode()
-
-	if rpigb.isMaster {
-		// Reset the DX to low
-		for _, d := range rpigb.Db {
-			d.Low()
-			d.Input()
-		}
-	}
 }
 
 // SelectAddress sets the GPIO pins status so the referenced address in the cartridge is the given one
 func (rpigb *RPiGameBoyProxy) SelectAddress(addr uint) {
-	if rpigb.isMaster {
-		writeToRPiPins(addr, rpigb.As)
-	}
+	writeToRPiPins(addr, rpigb.As)
 }
 
-func (rpigb *RPiGameBoyProxy) readMode() {
-	if rpigb.isMaster {
-		// To read we have to do the contrary (Rd to ground and Wr to high)
-		rpigb.Rd.Low()
-		rpigb.Wr.High()
-		time.Sleep(5 * time.Millisecond)
-	}
+func (rpigb *RPiGameBoyProxy) SetReadMode() {
+	// To read we have to do the contrary (Rd to ground and Wr to high)
+	rpigb.Rd.Low()
+	rpigb.Wr.High()
+	time.Sleep(5 * time.Millisecond)
 }
 
-func (rpigb *RPiGameBoyProxy) writeMode() {
-	if rpigb.isMaster {
-		// To write we have to do the contrary (Wr to ground and Rd to high)
-		rpigb.Rd.High()
-		rpigb.Wr.Low()
-		time.Sleep(5 * time.Millisecond)
-	}
+func (rpigb *RPiGameBoyProxy) SetWriteMode() {
+	// To write we have to do the contrary (Wr to ground and Rd to high)
+	rpigb.Rd.High()
+	rpigb.Wr.Low()
+	time.Sleep(5 * time.Millisecond)
 }
 
 func writeToRPiPins(value uint, pins []GameBoyRPiPin) {

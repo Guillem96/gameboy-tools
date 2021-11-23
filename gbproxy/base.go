@@ -30,6 +30,12 @@ type GameBoyPin interface {
 // this new object to the cartridge.Dumper
 type GameBoyProxy interface {
 
+	// SetReadMode sets the RD pin low and WR pin high (inverse operation)
+	SetReadMode()
+
+	// SetWriteMode sets the RD pin high and WR pin low (inverse operation)
+	SetWriteMode()
+
 	// Read returns the byte read at the address specified with the SelectAddress method
 	Read() uint8
 
