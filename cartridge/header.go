@@ -138,6 +138,48 @@ func (ch *CartridgeHeader) IsMBC5() bool {
 		ch.CartridgeType == MBC5RumbleRAMBattery
 }
 
+func (ch *CartridgeHeader) HasBattery() bool {
+	return ch.CartridgeType == MBC1RAMBattery || ch.CartridgeType == MBC2Battery || ch.CartridgeType == ROMRAMBattery ||
+		ch.CartridgeType == MMM01RAMBattery || ch.CartridgeType == MBC3TimerBattery || ch.CartridgeType == MBC3TimerRAMBattery ||
+		ch.CartridgeType == MBC3RAMBattery || ch.CartridgeType == MBC5RAMBattery || ch.CartridgeType == MBC5RumbleRAMBattery ||
+		ch.CartridgeType == MBC7SensorRumbleRAMBattery || ch.CartridgeType == HuC1RAMBattery
+}
+
+func (ch *CartridgeHeader) HasRAM() bool {
+	const (
+		HuC1RAMBattery uint8 = 0xFF
+	)
+	return ch.CartridgeType == MBC1RAMBattery || ch.CartridgeType == MBC1RAM || ch.CartridgeType == ROMRAM ||
+		ch.CartridgeType == ROMRAMBattery || ch.CartridgeType == MMM01RAM || ch.CartridgeType == MMM01RAMBattery ||
+		ch.CartridgeType == MBC3RAMBattery || ch.CartridgeType == MBC3RAM || ch.CartridgeType == MBC5RumbleRAMBattery ||
+		ch.CartridgeType == MBC7SensorRumbleRAMBattery || ch.CartridgeType == HuC1RAMBattery || ch.CartridgeType == MBC5RAM ||
+		ch.CartridgeType == MBC5RAMBattery || ch.CartridgeType == MBC5RumbleRAM
+}
+
+func (ch *CartridgeHeader) CartridgeTypeText() string {
+	var msg string
+	if !ch.HasMBC() {
+		msg = "ROM (no MBC)"
+	} else if ch.IsMBC1() {
+		msg = "MBC1"
+	} else if ch.IsMBC2() {
+		msg = "MBC2"
+	} else if ch.IsMBC3() {
+		msg = "MBC3"
+	} else if ch.IsMBC5() {
+		msg = "MBC5"
+	}
+
+	if ch.HasRAM() {
+		msg = msg + " + RAM"
+	}
+
+	if ch.HasBattery() {
+		msg = msg + " + Battery"
+	}
+	return msg
+}
+
 // GetNumROMBanks returns the number of ROM banks in the cartridge
 func (ch *CartridgeHeader) GetNumROMBanks() int {
 	if !ch.HasMBC() {
@@ -169,9 +211,9 @@ func (ch *CartridgeHeader) GetNumRAMBanks() int {
 	}[ch.RAMSize]
 }
 
-// ValidateHeader runs the checksum procedure and compares te result agains the byte located at
+// Validate runs the checksum procedure and compares te result agains the byte located at
 // 0x14D. If the result matches with the predefined checksum means that the dump has been successful
-func (ch *CartridgeHeader) ValidateHeader() error {
+func (ch *CartridgeHeader) Validate() error {
 	var x uint
 	x = 0x00
 

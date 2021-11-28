@@ -56,12 +56,22 @@ type RPiGameBoyProxy struct {
 	Wr GameBoyRPiPin
 }
 
+func initGPIO() {
+	// Open and map memory to access gpio, check for errors
+	if err := rpio.Open(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
 // NewRPiGameBoyProxy creates a new RPiGameBoyProxy. if isMaster is set to
 // true then it means that the raspberry is the one in charge of managing the
 // cartridge, meaning that it has to send the read/write operations along side
 // selecting the address. Contrarily, if isMaster is set to false, the raspberry
 // acts as a slave just forwarding to the GameBoy the requested byte
 func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping, isMaster bool) *RPiGameBoyProxy {
+	initGPIO()
+
 	as := []GameBoyRPiPin{GameBoyRPiPin(cm.A0), GameBoyRPiPin(cm.A1), GameBoyRPiPin(cm.A2),
 		GameBoyRPiPin(cm.A3), GameBoyRPiPin(cm.A4), GameBoyRPiPin(cm.A5), GameBoyRPiPin(cm.A6),
 		GameBoyRPiPin(cm.A7), GameBoyRPiPin(cm.A8), GameBoyRPiPin(cm.A9), GameBoyRPiPin(cm.A10),
@@ -107,15 +117,6 @@ func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping, isMaster bool) *RPiG
 	}
 }
 
-// Init setups the raspberry pi GPIO
-func (rpigb *RPiGameBoyProxy) Init() {
-	// Open and map memory to access gpio, check for errors
-	if err := rpio.Open(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
-
 // End clears the Raspberry pi GPIO
 func (rpigb *RPiGameBoyProxy) End() {
 	// Unmap gpio memory when done
@@ -158,14 +159,14 @@ func (rpigb *RPiGameBoyProxy) SetReadMode() {
 	// To read we have to do the contrary (Rd to ground and Wr to high)
 	rpigb.Rd.Low()
 	rpigb.Wr.High()
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(50 * time.Microsecond)
 }
 
 func (rpigb *RPiGameBoyProxy) SetWriteMode() {
 	// To write we have to do the contrary (Wr to ground and Rd to high)
 	rpigb.Rd.High()
 	rpigb.Wr.Low()
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(50 * time.Microsecond)
 }
 
 func writeToRPiPins(value uint, pins []GameBoyRPiPin) {
@@ -176,5 +177,5 @@ func writeToRPiPins(value uint, pins []GameBoyRPiPin) {
 	writeToPins(value, gbPins)
 
 	// Wait for GameBoy to do the write
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(50 * time.Microsecond)
 }

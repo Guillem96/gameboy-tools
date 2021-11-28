@@ -22,7 +22,7 @@ func TestReadHeaderFromFile(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = header.ValidateHeader()
+	err = header.Validate()
 	if err != nil {
 		t.Error(err)
 	}

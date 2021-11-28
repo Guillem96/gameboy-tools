@@ -22,6 +22,24 @@ func NewCartridge(h *CartridgeHeader, rbs [][]uint8) *Cartridge {
 	}
 }
 
+func (c *Cartridge) Validate() error {
+	nb := 0
+	var result uint16
+	result = 0
+	for _, bank := range c.ROMBanks {
+		for _, b := range bank {
+			if nb != 0x14E && nb != 0x14F {
+				result += uint16(b)
+			}
+			nb += 1
+		}
+	}
+	b0 := result & 0xFF
+	b1 := result & 0xFF00
+	fmt.Printf("-- Global Checksum ----------------------\n %02x %02x\n", b0, b1)
+	return nil
+}
+
 func (c *Cartridge) Save(fname string) error {
 	f, err := os.Create(fname)
 	if err != nil {
