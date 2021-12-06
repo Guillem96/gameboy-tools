@@ -2,6 +2,7 @@ package cartridge
 
 import (
 	"errors"
+	"fmt"
 )
 
 const (
@@ -98,6 +99,14 @@ func ROMHeaderFromBytes(bytes []uint8) *CartridgeHeader {
 		HeaderChecksum:   bytes[0x14D],
 		GlobalChecksum:   bytes[0x14E:0x150],
 	}
+}
+
+func (ch *CartridgeHeader) PrintInfo() {
+	fmt.Println("*** Cartridge Header ***")
+	fmt.Println("Title:", string(ch.Title))
+	fmt.Println("Header Checksum:", string(ch.HeaderChecksum))
+	fmt.Println("Cartridge Type:", ch.CartridgeTypeText())
+	fmt.Println("# ROM Banks:", ch.GetNumROMBanks())
 }
 
 // IsGBCOnly returns true if the cartridge can only run in a GameBoy color

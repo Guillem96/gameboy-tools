@@ -1,6 +1,8 @@
 package gbproxy
 
-import "math"
+import (
+	"math"
+)
 
 func writeToPins(value uint, pins []GameBoyPin) {
 	for i, p := range pins {

@@ -9,6 +9,8 @@ import (
 	"github.com/stianeikeland/go-rpio/v4"
 )
 
+const waitTime = 50 * time.Microsecond
+
 // GameBoyRPiPin implements the GameBoyPin interface. This implementation maps connections between
 // a RaspberryPi and the GameBoy via GPIO
 type GameBoyRPiPin rpio.Pin
@@ -120,16 +122,12 @@ func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping, isMaster bool) *RPiG
 // End clears the Raspberry pi GPIO
 func (rpigb *RPiGameBoyProxy) End() {
 	// Unmap gpio memory when done
-	defer rpio.Close()
+	rpio.Close()
 }
 
 // Read reads the byte located in the address specified with the SelectAddress method.
 func (rpigb *RPiGameBoyProxy) Read() uint8 {
 	var result uint8
-
-	for _, d := range rpigb.Db {
-		d.Input()
-	}
 
 	result = 0x00
 	for i := 0; i < 8; i++ {
@@ -143,11 +141,13 @@ func (rpigb *RPiGameBoyProxy) Read() uint8 {
 // Write writes the provided value to the selected address with the SelectAddress function
 func (rpigb *RPiGameBoyProxy) Write(value uint8) {
 	// When writing we set DX pins to output mode
-	for _, d := range rpigb.Db {
-		d.Output()
-	}
-
 	writeToRPiPins(uint(value), rpigb.Db)
+
+	rpigb.SetReadMode()
+	for _, d := range rpigb.Db {
+		d.Low()
+		d.Input()
+	}
 }
 
 // SelectAddress sets the GPIO pins status so the referenced address in the cartridge is the given one
@@ -159,14 +159,22 @@ func (rpigb *RPiGameBoyProxy) SetReadMode() {
 	// To read we have to do the contrary (Rd to ground and Wr to high)
 	rpigb.Rd.Low()
 	rpigb.Wr.High()
-	time.Sleep(50 * time.Microsecond)
+	time.Sleep(waitTime)
+
+	for _, d := range rpigb.Db {
+		d.Input()
+	}
 }
 
 func (rpigb *RPiGameBoyProxy) SetWriteMode() {
 	// To write we have to do the contrary (Wr to ground and Rd to high)
 	rpigb.Rd.High()
 	rpigb.Wr.Low()
-	time.Sleep(50 * time.Microsecond)
+	time.Sleep(waitTime)
+
+	for _, d := range rpigb.Db {
+		d.Output()
+	}
 }
 
 func writeToRPiPins(value uint, pins []GameBoyRPiPin) {
@@ -177,5 +185,5 @@ func writeToRPiPins(value uint, pins []GameBoyRPiPin) {
 	writeToPins(value, gbPins)
 
 	// Wait for GameBoy to do the write
-	time.Sleep(50 * time.Microsecond)
+	time.Sleep(waitTime)
 }
