@@ -230,9 +230,10 @@ func (ch *CartridgeHeader) Validate() error {
 
 	for i := 0x0134; i < 0x014D; i++ {
 		x = x - uint(ch.rawBytes[i]) - 1
+		x = x & 0xFF
 	}
 
-	valid := uint8(x&0xFF) == ch.HeaderChecksum
+	valid := uint8(x) == ch.HeaderChecksum
 	if !valid {
 		return errors.New("invalid header checksum")
 	} else {
