@@ -150,7 +150,6 @@ func (rpigb *RPiGameBoyProxy) Read() uint8 {
 	}
 
 	rpigb.Rd.High()
-	time.Sleep(waitTime)
 
 	return result
 }
@@ -191,9 +190,9 @@ func (rpigb *RPiGameBoyProxy) SetWriteMode() {
 }
 
 func writeToRPiPins(value uint, pins []GameBoyRPiPin) {
-	gbPins := make([]GameBoyPin, 0)
-	for _, p := range pins {
-		gbPins = append(gbPins, GameBoyPin(p))
+	gbPins := make([]GameBoyPin, len(pins))
+	for i, p := range pins {
+		gbPins[i] = GameBoyPin(p)
 	}
 	writeToPins(value, gbPins)
 
