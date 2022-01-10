@@ -105,6 +105,7 @@ func (ch *CartridgeHeader) PrintInfo() {
 	fmt.Println("*** Cartridge Header ***")
 	fmt.Println("Title:", string(ch.Title))
 	fmt.Println("Header Checksum:", string(ch.HeaderChecksum))
+	fmt.Printf("Global Checksum: 0x%x 0x%x\n", ch.GlobalChecksum[0], ch.GlobalChecksum[1])
 	fmt.Println("Cartridge Type:", ch.CartridgeTypeText())
 	fmt.Println("# ROM Banks:", ch.GetNumROMBanks())
 }

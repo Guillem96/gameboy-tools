@@ -92,15 +92,23 @@ func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping, isMaster bool) *RPiG
 		// be in output mode
 		if isMaster {
 			a.Output()
+			a.Low()
 		} else {
 			a.Input()
 		}
-		a.Low()
+	}
+
+	for _, d := range db {
+		d.Output()
+		d.Low()
+		time.Sleep(waitTime)
+		d.Input()
 	}
 
 	rd := GameBoyRPiPin(cm.RD)
 	if isMaster {
 		rd.Output()
+		rd.High()
 	} else {
 		rd.Input()
 	}
@@ -108,12 +116,10 @@ func NewRPiGameBoyProxy(cm *conmap.GameBoyRaspberryMapping, isMaster bool) *RPiG
 	wr := GameBoyRPiPin(cm.WR)
 	if isMaster {
 		wr.Output()
+		wr.High()
 	} else {
 		wr.Input()
 	}
-
-	wr.High()
-	rd.High()
 
 	return &RPiGameBoyProxy{
 		As: as,
@@ -155,16 +161,12 @@ func (rpigb *RPiGameBoyProxy) Write(value uint8) {
 	writeToRPiPins(uint(value), rpigb.Db)
 
 	rpigb.Wr.Low()
-	time.Sleep(1 * time.Second)
+	time.Sleep(waitTime)
 
 	rpigb.Wr.High()
 	time.Sleep(waitTime)
 
-	for _, d := range rpigb.Db {
-		d.Input()
-	}
-
-	time.Sleep(waitTime)
+	rpigb.SetReadMode()
 }
 
 // SelectAddress sets the GPIO pins status so the referenced address in the cartridge is the given one
@@ -174,6 +176,7 @@ func (rpigb *RPiGameBoyProxy) SelectAddress(addr uint) {
 
 func (rpigb *RPiGameBoyProxy) SetReadMode() {
 	for _, d := range rpigb.Db {
+		d.Low()
 		d.Input()
 	}
 	time.Sleep(waitTime)
@@ -182,6 +185,7 @@ func (rpigb *RPiGameBoyProxy) SetReadMode() {
 func (rpigb *RPiGameBoyProxy) SetWriteMode() {
 	for _, d := range rpigb.Db {
 		d.Output()
+		d.Low()
 	}
 	time.Sleep(waitTime)
 }
