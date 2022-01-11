@@ -35,7 +35,7 @@ func (c *Cartridge) Validate() error {
 		}
 	}
 	b0 := result & 0xFF
-	b1 := result & 0xFF00
+	b1 := (result & 0xFF00) >> 8
 	fmt.Printf("-- Global Checksum ----------------------\n %02x %02x\n", b0, b1)
 	fmt.Printf("-- Expected Global Checksum -------------\n %02x %02x\n", c.Header.GlobalChecksum[0], c.Header.GlobalChecksum[1])
 
