@@ -1,12 +1,13 @@
 package test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Guillem96/gameboy-tools/cartridge"
 )
 
-const romFile = "../roms/pkmn_red.gb"
+const romFile = "../roms/tetris.gb"
 
 var expectedNintendoLogo = [...]uint8{
 	0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00,
@@ -34,6 +35,12 @@ func TestReadWholeCartridge(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	err = cart.Validate()
+	if err != nil {
+		fmt.Println("Warning:", err)
+	}
+
 	err = cart.Save("../roms/test.gb")
 	if err != nil {
 		t.Error(err)

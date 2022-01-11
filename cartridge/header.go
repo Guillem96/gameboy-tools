@@ -104,10 +104,17 @@ func ROMHeaderFromBytes(bytes []uint8) *CartridgeHeader {
 func (ch *CartridgeHeader) PrintInfo() {
 	fmt.Println("*** Cartridge Header ***")
 	fmt.Println("Title:", string(ch.Title))
-	fmt.Println("Header Checksum:", string(ch.HeaderChecksum))
-	fmt.Printf("Global Checksum: 0x%x 0x%x\n", ch.GlobalChecksum[0], ch.GlobalChecksum[1])
+	fmt.Printf("Header Checksum: 0x%02x\n", ch.HeaderChecksum)
+	fmt.Printf("Global Checksum: 0x%02x 0x%02x\n", ch.GlobalChecksum[0], ch.GlobalChecksum[1])
 	fmt.Println("Cartridge Type:", ch.CartridgeTypeText())
+	fmt.Print("Supports SGB: ")
+	if ch.SupportsSGB() {
+		fmt.Println("YES")
+	} else {
+		fmt.Println("NO")
+	}
 	fmt.Println("# ROM Banks:", ch.GetNumROMBanks())
+	fmt.Println("# RAM Banks:", ch.GetNumRAMBanks())
 }
 
 // IsGBCOnly returns true if the cartridge can only run in a GameBoy color
@@ -156,13 +163,10 @@ func (ch *CartridgeHeader) HasBattery() bool {
 }
 
 func (ch *CartridgeHeader) HasRAM() bool {
-	const (
-		HuC1RAMBattery uint8 = 0xFF
-	)
 	return ch.CartridgeType == MBC1RAMBattery || ch.CartridgeType == MBC1RAM || ch.CartridgeType == ROMRAM ||
 		ch.CartridgeType == ROMRAMBattery || ch.CartridgeType == MMM01RAM || ch.CartridgeType == MMM01RAMBattery ||
 		ch.CartridgeType == MBC3RAMBattery || ch.CartridgeType == MBC3RAM || ch.CartridgeType == MBC5RumbleRAMBattery ||
-		ch.CartridgeType == MBC7SensorRumbleRAMBattery || ch.CartridgeType == HuC1RAMBattery || ch.CartridgeType == MBC5RAM ||
+		ch.CartridgeType == MBC7SensorRumbleRAMBattery || ch.CartridgeType == HuC1RAMBattery ||
 		ch.CartridgeType == MBC5RAMBattery || ch.CartridgeType == MBC5RumbleRAM
 }
 
@@ -187,15 +191,16 @@ func (ch *CartridgeHeader) CartridgeTypeText() string {
 	if ch.HasBattery() {
 		msg = msg + " + Battery"
 	}
+
+	if ch.IsGBCOnly() {
+		msg = msg + " (GBC Only)"
+	}
+
 	return msg
 }
 
 // GetNumROMBanks returns the number of ROM banks in the cartridge
 func (ch *CartridgeHeader) GetNumROMBanks() int {
-	if !ch.HasMBC() {
-		return 0
-	}
-
 	return map[uint8]int{
 		ROM32KB:  2,
 		ROM64KB:  4,
@@ -226,8 +231,6 @@ func (ch *CartridgeHeader) GetNumRAMBanks() int {
 func (ch *CartridgeHeader) Validate() error {
 	var x uint
 	x = 0x00
-
-	// TODO: Check the rawbytes size
 
 	for i := 0x0134; i < 0x014D; i++ {
 		x = x - uint(ch.rawBytes[i]) - 1
